@@ -27,7 +27,7 @@ class SystemSetting extends Model
                 $this->attributes['value'] = is_array($value) ? json_encode($value) : $value;
                 break;
             case 'file':
-                // For files, just store the path as-is
+                // For files, just store the path as-is (without 'storage/' prefix)
                 $this->attributes['value'] = $value;
                 break;
             default:
@@ -37,7 +37,7 @@ class SystemSetting extends Model
 
     public function getProcessedValue()
     {
-        $value = $this->attributes['value'];
+        $value = $this->attributes['value'] ?? null;
         
         switch ($this->type) {
             case 'boolean':
@@ -52,16 +52,23 @@ class SystemSetting extends Model
                 if (!$value) return null;
                 
                 // Check if it's already a full URL
-                if (str_starts_with($value, 'http')) {
+                if (filter_var($value, FILTER_VALIDATE_URL)) {
                     return $value;
                 }
                 
-                // If it starts with storage/, remove it to avoid double storage/
-                if (str_starts_with($value, 'storage/')) {
-                    $value = substr($value, 8);
+                // Clean the path - remove any 'storage/' prefix to avoid duplication
+                $cleanPath = preg_replace('#^storage/#', '', $value);
+                $cleanPath = ltrim($cleanPath, '/');
+                
+                // Check if file exists
+                if (!Storage::disk('public')->exists($cleanPath)) {
+                    \Log::warning("File not found in storage: {$cleanPath}");
+                    return null;
                 }
                 
-                return asset('storage/' . $value);
+                // Use Storage::url() for proper URL generation
+                // This respects your APP_URL and filesystem configuration
+                return Storage::disk('public')->url($cleanPath);
             default:
                 return $value;
         }
@@ -69,8 +76,13 @@ class SystemSetting extends Model
 
     public static function get($key, $default = null)
     {
-        $setting = static::where('key', $key)->first();
-        return $setting ? $setting->getProcessedValue() : $default;
+        try {
+            $setting = static::where('key', $key)->first();
+            return $setting ? $setting->getProcessedValue() : $default;
+        } catch (\Exception $e) {
+            \Log::error("Error getting setting '{$key}': " . $e->getMessage());
+            return $default;
+        }
     }
 
     public static function set($key, $value, $type = 'string', $group = 'general')
@@ -93,6 +105,14 @@ class SystemSetting extends Model
 
     public function getRawValueAttribute()
     {
-        return $this->attributes['value'];
+        return $this->attributes['value'] ?? null;
+    }
+    
+    /**
+     * Get the original value without any processing
+     */
+    public function getRawOriginal($key)
+    {
+        return $this->attributes[$key] ?? null;
     }
 }

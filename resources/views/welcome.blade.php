@@ -30,7 +30,7 @@
     @endif
     
     <!-- Dynamic Styles -->
-    <link rel="stylesheet" href="{{ route('dynamic-styles.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ route('dynamic-styles.css') }}?v={{ config('app.version', '1.0') }}">
     
     <style>
         :root {

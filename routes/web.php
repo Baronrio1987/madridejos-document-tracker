@@ -37,8 +37,14 @@ Auth::routes([
 
 // CSS Route - ISOLATED to prevent conflicts
 Route::get('/assets/css/dynamic-styles.css', function() {
-    $controller = app(SettingsController::class);
-    return $controller->generateCss();
+    try {
+        $controller = app(SettingsController::class);
+        return $controller->generateCss();
+    } catch (\Exception $e) {
+        \Log::error('CSS generation failed: ' . $e->getMessage());
+        return response('/* CSS generation failed */', 200)
+            ->header('Content-Type', 'text/css');
+    }
 })->name('dynamic-styles.css');
 
 // Public Routes

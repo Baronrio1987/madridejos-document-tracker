@@ -80,49 +80,15 @@ Route::get('/debug-login', function() {
 
 // Authenticated Routes with Active User Check
 Route::middleware(['auth', 'active.user', 'activity.log'])->group(function () {
-
+     Route::get('/test-route', function() {
+        return 'Route works!';
+    });
+    
     // Dashboard
     Route::get('/dashboard', function() {
         \Log::info('Dashboard accessed', ['user_id' => auth()->id()]);
         return app(DashboardController::class)->index();
     })->name('dashboard');
-
-    // Debug Settings Route (temporary - remove after fixing issues)
-    Route::get('/debug-settings', function() {
-        $fileSettings = \App\Models\SystemSetting::where('type', 'file')->get();
-        
-        $debug = [];
-        foreach ($fileSettings as $setting) {
-            $rawValue = $setting->getRawOriginal('value');
-            $cleanPath = $rawValue ? preg_replace('#^storage/#', '', $rawValue) : null;
-            
-            $debug[$setting->key] = [
-                'raw_value' => $rawValue,
-                'clean_path' => $cleanPath,
-                'processed_value' => $setting->getProcessedValue(),
-                'file_exists' => $cleanPath ? Storage::disk('public')->exists($cleanPath) : false,
-                'full_disk_path' => $cleanPath ? Storage::disk('public')->path($cleanPath) : null,
-                'storage_url' => $cleanPath ? Storage::disk('public')->url($cleanPath) : null,
-            ];
-        }
-        
-        return response()->json([
-            'app_env' => config('app.env'),
-            'app_url' => config('app.url'),
-            'storage_link_exists' => is_link(public_path('storage')),
-            'storage_link_target' => is_link(public_path('storage')) ? readlink(public_path('storage')) : null,
-            'storage_disk_path' => storage_path('app/public'),
-            'public_storage_path' => public_path('storage'),
-            'filesystem_driver' => config('filesystems.default'),
-            'public_disk_root' => config('filesystems.disks.public.root'),
-            'public_disk_url' => config('filesystems.disks.public.url'),
-            'file_settings' => $debug,
-            'test_paths' => [
-                'asset_test' => asset('storage/test.png'),
-                'storage_url_test' => Storage::disk('public')->url('test.png'),
-            ],
-        ], JSON_PRETTY_PRINT);
-    })->name('debug.settings');
 
     // User Profile Routes
     Route::prefix('profile')->name('profile.')->group(function () {

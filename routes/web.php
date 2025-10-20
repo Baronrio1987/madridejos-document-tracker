@@ -399,3 +399,25 @@ Route::fallback(function () {
     
     return response()->view('errors.404', [], 404);
 });
+
+Route::get('/debug-settings', function() {
+    $settings = \App\Models\SystemSetting::where('type', 'file')->get();
+    
+    $debug = [];
+    foreach ($settings as $setting) {
+        $debug[$setting->key] = [
+            'raw_value' => $setting->getRawOriginal('value'),
+            'processed_value' => $setting->getProcessedValue(),
+            'file_exists' => $setting->getRawOriginal('value') ? 
+                Storage::disk('public')->exists(preg_replace('#^storage/#', '', $setting->getRawOriginal('value'))) : false,
+        ];
+    }
+    
+    return [
+        'storage_link_exists' => is_link(public_path('storage')),
+        'storage_path' => storage_path('app/public'),
+        'public_storage_path' => public_path('storage'),
+        'settings' => $debug,
+        'app_url' => config('app.url'),
+    ];
+})->middleware('auth');

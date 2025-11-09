@@ -641,8 +641,8 @@
                         alt="{{ setting('system.name', config('app.name')) }}" 
                         class="me-2">
                 @endif
-                <span class="d-none d-sm-inline">{{ setting('system.name', config('app.name')) }}</span>
-                <span class="d-sm-none">{{ Str::limit(setting('system.name', config('app.name')), 20) }}</span>
+                <span class="d-none d-md-inline">{{ setting('system.name', config('app.name')) }}</span>
+                <span class="d-md-none">{{ setting('system.name', config('app.name')) }}</span>
             </a>
             
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">

@@ -31,7 +31,7 @@
     <link rel="apple-touch-icon" sizes="180x180" href="{{ setting('appearance.favicon', asset('favicon.ico')) }}">
     
     <!-- Dynamic Styles -->
-    <link rel="stylesheet" href="{{ route('dynamic-styles.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ route('dynamic-styles.css') }}?v={{ config('app.version', '1.0') }}">
     
     <style>
         :root {

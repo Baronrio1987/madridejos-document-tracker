@@ -16,6 +16,7 @@ use App\Http\Controllers\QrCodeController;
 use App\Http\Controllers\PublicTrackingController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 /*
 |--------------------------------------------------------------------------
@@ -37,8 +38,14 @@ Auth::routes([
 
 // CSS Route - ISOLATED to prevent conflicts
 Route::get('/assets/css/dynamic-styles.css', function() {
-    $controller = app(SettingsController::class);
-    return $controller->generateCss();
+    try {
+        $controller = app(SettingsController::class);
+        return $controller->generateCss();
+    } catch (\Exception $e) {
+        \Log::error('CSS generation failed: ' . $e->getMessage());
+        return response('/* CSS generation failed */', 200)
+            ->header('Content-Type', 'text/css');
+    }
 })->name('dynamic-styles.css');
 
 // Public Routes
@@ -73,7 +80,10 @@ Route::get('/debug-login', function() {
 
 // Authenticated Routes with Active User Check
 Route::middleware(['auth', 'active.user', 'activity.log'])->group(function () {
-
+     Route::get('/test-route', function() {
+        return 'Route works!';
+    });
+    
     // Dashboard
     Route::get('/dashboard', function() {
         \Log::info('Dashboard accessed', ['user_id' => auth()->id()]);

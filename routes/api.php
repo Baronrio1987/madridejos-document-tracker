@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 // CHANGE: Use 'web' middleware instead of 'auth:sanctum' for web-based AJAX calls
-Route::middleware(['web', 'auth', 'activity.log'])->group(function () {
+Route::middleware(['auth:sanctum', 'activity.log'])->group(function () {
     
     // User Information
     Route::get('/user', function (Request $request) {

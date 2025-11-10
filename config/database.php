@@ -48,7 +48,7 @@ return [
             'url' => env('DATABASE_URL'),
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '3306'),
-            'database' => env('DB_DATABASE', 'u805497834_lawis_tracker'),
+            'database' => env('DB_DATABASE', 'u805497834_tracker_lawis'),
             'username' => env('DB_USERNAME', 'u805497834_lawis_tracker'),
             'password' => env('DB_PASSWORD', 'B4r0nr10@1987'),
             'unix_socket' => env('DB_SOCKET', ''),

@@ -1,3 +1,7 @@
+# ==========================================
+# ENHANCED SECURE .HTACCESS FOR LARAVEL
+# ==========================================
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes
@@ -5,119 +9,153 @@
 
     RewriteEngine On
 
-    # Block access to sensitive files and directories FIRST
-    RewriteRule ^\.env - [F,L]
-    RewriteRule ^\.git - [F,L]
-    RewriteRule ^vendor/ - [F,L]
-    RewriteRule ^bootstrap/ - [F,L]
-    RewriteRule ^config/ - [F,L]
-    RewriteRule ^database/ - [F,L]
-    RewriteRule ^routes/ - [F,L]
-    RewriteRule ^tests/ - [F,L]
-    RewriteRule ^app/ - [F,L]
-    RewriteRule ^composer\.(json|lock)$ - [F,L]
-    RewriteRule ^artisan$ - [F,L]
-    RewriteRule ^phpunit\.xml$ - [F,L]
-    RewriteRule ^server\.php$ - [F,L]
-    RewriteRule ^package(-lock)?\.json$ - [F,L]
-    RewriteRule ^webpack\.mix\.js$ - [F,L]
-    RewriteRule ^\.gitignore$ - [F,L]
-    RewriteRule ^\.gitattributes$ - [F,L]
-    RewriteRule ^README\.md$ - [F,L]
+    # ==========================================
+    # SECURITY HEADERS
+    # ==========================================
     
-    # IMPORTANT: Allow public storage access
-    # Block storage/ EXCEPT storage/app/public (which is linked to public/storage)
-    RewriteRule ^storage/(?!app/public/) - [F,L]
+    <IfModule mod_headers.c>
+        # Prevent clickjacking attacks
+        Header always set X-Frame-Options "SAMEORIGIN"
+        
+        # Prevent MIME type sniffing
+        Header always set X-Content-Type-Options "nosniff"
+        
+        # Enable XSS protection
+        Header always set X-XSS-Protection "1; mode=block"
+        
+        # Referrer Policy
+        Header always set Referrer-Policy "strict-origin-when-cross-origin"
+        
+        # Content Security Policy (adjust as needed)
+        Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"
+        
+        # Permissions Policy (formerly Feature-Policy)
+        Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+        
+        # Strict Transport Security (HTTPS only - uncomment when ready)
+        # Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        
+        # Remove server information
+        Header unset X-Powered-By
+        Header always unset X-Powered-By
+        ServerSignature Off
+    </IfModule>
 
+    # ==========================================
+    # BLOCK ACCESS TO SENSITIVE FILES
+    # ==========================================
+    
+    # Block access to .env files
+    <FilesMatch "^\.env">
+        Order allow,deny
+        Deny from all
+    </FilesMatch>
+    
+    # Block access to hidden files and directories
+    RedirectMatch 403 /\..*$
+    
+    # Block access to composer files
+    <FilesMatch "(composer\.json|composer\.lock|package\.json|package-lock\.json)$">
+        Order allow,deny
+        Deny from all
+    </FilesMatch>
+    
+    # Block access to config files
+    <FilesMatch "\.(ini|log|conf|sql|bak|backup|old|temp|tmp)$">
+        Order allow,deny
+        Deny from all
+    </FilesMatch>
+
+    # Block access to sensitive directories
+    RedirectMatch 403 ^/(storage|database|tests|vendor)/.*$
+
+    # ==========================================
+    # PROTECT AGAINST COMMON ATTACKS
+    # ==========================================
+    
+    # Block SQL injection attempts
+    RewriteCond %{QUERY_STRING} (\<|%3C).*script.*(\>|%3E) [NC,OR]
+    RewriteCond %{QUERY_STRING} GLOBALS(=|\[|\%[0-9A-Z]{0,2}) [OR]
+    RewriteCond %{QUERY_STRING} _REQUEST(=|\[|\%[0-9A-Z]{0,2}) [OR]
+    RewriteCond %{QUERY_STRING} (\.\./|\.\.\\) [OR]
+    RewriteCond %{QUERY_STRING} (union|select|insert|drop|update|delete|replace|truncate|create|alter|cast|set|declare|exec|script) [NC]
+    RewriteRule ^(.*)$ - [F,L]
+    
+    # Block file injection attempts
+    RewriteCond %{REQUEST_URI} \.(php|php3|php4|php5|phtml|pl|py|jsp|asp|htm|shtml|sh|cgi)\. [NC,OR]
+    RewriteCond %{REQUEST_URI} (base64_encode|eval|gzinflate|gzuncompress|gzdeflate|proc_open|popen|curl_exec|system|shell_exec|passthru) [NC]
+    RewriteRule ^(.*)$ - [F,L]
+    
+    # Block bad user agents
+    RewriteCond %{HTTP_USER_AGENT} (libwww-perl|wget|python|nikto|curl|scan|java|winhttp|clshttp|loader|fetch) [NC,OR]
+    RewriteCond %{HTTP_USER_AGENT} (<|>|'|%0A|%0D|%27|%3C|%3E|%00) [NC,OR]
+    RewriteCond %{HTTP_USER_AGENT} ^$ [OR]
+    RewriteCond %{HTTP_USER_AGENT} ^(-|.{500,})$ [NC]
+    RewriteRule ^(.*)$ - [F,L]
+    
+    # Block suspicious request methods
+    RewriteCond %{REQUEST_METHOD} ^(TRACE|DELETE|TRACK|DEBUG|OPTIONS|PUT) [NC]
+    RewriteRule ^(.*)$ - [F,L]
+
+    # Block proxy headers
+    RewriteCond %{HTTP:X-Forwarded-For} .*(<|>|'|%0A|%0D|%27|%3C|%3E|%00).* [NC,OR]
+    RewriteCond %{HTTP:X-Forwarded-Host} .*(<|>|'|%0A|%0D|%27|%3C|%3E|%00).* [NC,OR]
+    RewriteCond %{HTTP:X-Forwarded-Server} .*(<|>|'|%0A|%0D|%27|%3C|%3E|%00).* [NC]
+    RewriteRule ^(.*)$ - [F,L]
+
+    # ==========================================
+    # FORCE HTTPS (Uncomment when SSL is ready)
+    # ==========================================
+    
+    # RewriteCond %{HTTPS} off
+    # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # ==========================================
+    # STANDARD LARAVEL ROUTING
+    # ==========================================
+    
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
-    # Redirect Trailing Slashes If Not A Folder
+    # Redirect Trailing Slashes If Not A Folder...
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_URI} (.+)/$
     RewriteRule ^ %1 [L,R=301]
 
-    # Redirect everything to public folder if not already there
-    RewriteCond %{REQUEST_URI} !^/public/
-    RewriteCond %{REQUEST_FILENAME} !-f
+    # Send Requests To Front Controller...
     RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^(.*)$ public/$1 [L]
-    
-    # Handle requests that are already in public folder
-    RewriteCond %{REQUEST_URI} ^/public/
     RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^public/(.*)$ public/index.php [L]
+    RewriteRule ^ index.php [L]
+
 </IfModule>
 
-# Additional file-level protection
-<FilesMatch "^(\.env|\.git.*|composer\.(json|lock)|artisan|server\.php|phpunit\.xml|package.*\.json|webpack\.mix\.js|\.gitignore|\.gitattributes)$">
-    <IfModule mod_authz_core.c>
-        Require all denied
-    </IfModule>
-    <IfModule !mod_authz_core.c>
-        Order allow,deny
-        Deny from all
-    </IfModule>
-</FilesMatch>
-
-# Disable directory browsing
+# ==========================================
+# DISABLE DIRECTORY BROWSING
+# ==========================================
 Options -Indexes
 
-# Prevent access to PHP files in certain directories
-<FilesMatch "\.php$">
-    <If "%{REQUEST_URI} =~ m#^/(storage|bootstrap|config|database|routes|tests|vendor|app)/#">
-        <IfModule mod_authz_core.c>
-            Require all denied
-        </IfModule>
-    </If>
-</FilesMatch>
-
-# Security Headers
-<IfModule mod_headers.c>
-    # Prevent clickjacking
-    Header always set X-Frame-Options "SAMEORIGIN"
-    
-    # Prevent MIME sniffing
-    Header always set X-Content-Type-Options "nosniff"
-    
-    # Enable XSS protection
-    Header always set X-XSS-Protection "1; mode=block"
-    
-    # Referrer Policy
-    Header always set Referrer-Policy "strict-origin-when-cross-origin"
-    
-    # Remove server signature
-    Header unset Server
-    Header unset X-Powered-By
+# ==========================================
+# PHP SECURITY SETTINGS
+# ==========================================
+<IfModule mod_php7.c>
+    php_flag display_errors Off
+    php_flag log_errors On
+    php_flag expose_php Off
+    php_value session.cookie_httponly 1
+    php_value session.cookie_secure 1
 </IfModule>
 
-# Disable server signature
-ServerSignature Off
-
-# Protect against SQL injection and XSS
-<IfModule mod_rewrite.c>
-    RewriteCond %{QUERY_STRING} (<|%3C).*script.*(>|%3E) [NC,OR]
-    RewriteCond %{QUERY_STRING} GLOBALS(=|[|%[0-9A-Z]{0,2}) [OR]
-    RewriteCond %{QUERY_STRING} _REQUEST(=|[|%[0-9A-Z]{0,2})
-    RewriteRule ^(.*)$ - [F,L]
-</IfModule>
-
-# Block common exploit attempts
-<IfModule mod_alias.c>
-    RedirectMatch 403 /\.git
-    RedirectMatch 403 /\.env
-    RedirectMatch 403 /composer\.json
-    RedirectMatch 403 /composer\.lock
-</IfModule>
-
-# Compression for better performance
+# ==========================================
+# GZIP COMPRESSION (Performance)
+# ==========================================
 <IfModule mod_deflate.c>
     AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
 </IfModule>
 
-# Browser Caching
+# ==========================================
+# BROWSER CACHING (Performance)
+# ==========================================
 <IfModule mod_expires.c>
     ExpiresActive On
     ExpiresByType image/jpg "access plus 1 year"
@@ -126,15 +164,15 @@ ServerSignature Off
     ExpiresByType image/png "access plus 1 year"
     ExpiresByType image/svg+xml "access plus 1 year"
     ExpiresByType text/css "access plus 1 month"
-    ExpiresByType application/javascript "access plus 1 month"
     ExpiresByType application/pdf "access plus 1 month"
-    ExpiresByType text/x-javascript "access plus 1 month"
+    ExpiresByType text/javascript "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType application/x-shockwave-flash "access plus 1 month"
     ExpiresByType image/x-icon "access plus 1 year"
     ExpiresDefault "access plus 2 days"
 </IfModule>
 
-# UTF-8 encoding
-AddDefaultCharset UTF-8
-<IfModule mod_mime.c>
-    AddCharset UTF-8 .html .css .js .xml .json .rss .atom
-</IfModule>
+# ==========================================
+# LIMIT REQUEST SIZE (Prevent DoS)
+# ==========================================
+LimitRequestBody 10485760

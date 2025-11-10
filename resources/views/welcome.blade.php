@@ -687,7 +687,7 @@
                             <span class="text-warning">{{ setting('municipality.name', 'Madridejos') }}</span>
                         </h1>
                         <p class="lead hero-subtitle">
-                            Streamline your document workflow with our comprehensive tracking system. 
+                            Streamine your document workflow with our comprehensive tracking system. 
                             Monitor, route, and manage official documents with transparency and efficiency.
                         </p>
                         
